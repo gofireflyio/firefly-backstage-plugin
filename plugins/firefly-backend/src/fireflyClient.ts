@@ -31,6 +31,8 @@ export interface FireflyAsset {
   cloudLink: string;
   fireflyLink: string;
   tags: string[];
+  location: string;
+  parentAssetId: string;
 }
 
 export interface FireflyInventoryResponse {
@@ -148,8 +150,29 @@ export class FireflyClient {
     const pageSize = 10000;
 
     while (hasMore) {
-      const afterKey = assets.length > 0 ? { sortField: 'assetId.keyword', id: assets[assets.length - 1]?.assetId } : undefined;
-      const response = await this.getAssets({ ...filters, size: pageSize, afterKey, sorting: { field: 'assetId.keyword', order: 'asc' } });
+      const afterKey = assets.length > 0 ? { sortField: 'assetId', id: assets[assets.length - 1]?.assetId } : undefined; // TODO: Check if this is correct
+      
+      // Try up to 3 times to get assets
+      let retries = 0;
+      let response;
+      while (retries < 3) {
+        try {
+          response = await this.getAssets({ ...filters, size: pageSize, afterKey, sorting: { field: 'assetId.keyword', order: 'asc' } }); // TODO: Check if the sorting is correct
+          break;
+        } catch (error) {
+          retries++;
+          if (retries === 3) {
+            throw error;
+          }
+          this.logger.warn(`Failed to get assets, attempt ${retries} of 3`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * retries)); // Exponential backoff
+        }
+      }
+
+      if (!response) {
+        throw new Error('Failed to get assets');
+      }
+
       this.logger.info(`Found ${response.responseObjects.length} assets on page ${page}`);
       assets.push(...response.responseObjects);
       hasMore = response.responseObjects.length === pageSize;

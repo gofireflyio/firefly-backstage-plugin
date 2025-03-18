@@ -46,7 +46,7 @@ export class FireflyEntityProvider implements EntityProvider {
   /** @inheritdoc */
   async connect(connection: EntityProviderConnection): Promise<void> {
     this.connection = connection;
-    await this.refresh();
+    this.refresh();
     
     if (this.intervalMs > 0) {
       setInterval(() => this.refresh(), this.intervalMs);
@@ -90,7 +90,6 @@ export class FireflyEntityProvider implements EntityProvider {
    */
   private assetToEntity(asset: any): Entity {
     const assetName = asset.name
-      .toLowerCase()
       .replace(/[^a-zA-Z0-9\-_.]/g, '-') // Replace invalid chars with dash
       .replace(/[-_.]{2,}/g, '-') // Replace multiple separators with single dash
       .replace(/^[-_.]|[-_.]$/g, '') // Remove separators from start/end
@@ -102,6 +101,7 @@ export class FireflyEntityProvider implements EntityProvider {
         uid: asset.assetId,
         tags: asset.tags,
         name: assetName,
+        namespace: asset.location || 'default',
         annotations: {
           'backstage.io/managed-by-location': 'url:https://firefly.ai', // TODO: Should be a link to the Firefly asset
           'backstage.io/managed-by-origin-location': 'url:https://firefly.ai', // TODO: Should be a link to the Firefly asset
