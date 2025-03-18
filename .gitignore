@@ -14,5 +14,5 @@ registry.terraform.io
 dist/
 gitleaks.toml
 node_modules
-.yarn/**
+.yarn/
 yarn.lock
