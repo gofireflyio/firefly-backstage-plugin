@@ -30,6 +30,7 @@ export interface FireflyAsset {
   codeLink: string;
   cloudLink: string;
   fireflyLink: string;
+  tags: string[];
 }
 
 export interface FireflyInventoryResponse {
@@ -144,14 +145,14 @@ export class FireflyClient {
     const assets: FireflyAsset[] = [];
     let hasMore = true;
     let page = 1;
-    const pageSize = 1000;
+    const pageSize = 10000;
 
     while (hasMore) {
       const afterKey = assets.length > 0 ? { sortField: 'assetId.keyword', id: assets[assets.length - 1]?.assetId } : undefined;
       const response = await this.getAssets({ ...filters, size: pageSize, afterKey, sorting: { field: 'assetId.keyword', order: 'asc' } });
       this.logger.info(`Found ${response.responseObjects.length} assets on page ${page}`);
       assets.push(...response.responseObjects);
-      hasMore = response.totalPages > page;
+      hasMore = response.responseObjects.length === pageSize;
       page++;
     }
 

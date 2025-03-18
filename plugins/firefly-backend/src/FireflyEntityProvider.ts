@@ -89,14 +89,22 @@ export class FireflyEntityProvider implements EntityProvider {
    * Converts a Firefly asset to a Backstage entity
    */
   private assetToEntity(asset: any): Entity {
+    const assetName = asset.name
+      .toLowerCase()
+      .replace(/[^a-zA-Z0-9\-_.]/g, '-') // Replace invalid chars with dash
+      .replace(/[-_.]{2,}/g, '-') // Replace multiple separators with single dash
+      .replace(/^[-_.]|[-_.]$/g, '') // Remove separators from start/end
+      .slice(0, 63); // Limit to 63 chars
     return {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'Resource',
       metadata: {
-        name: asset.name,
+        uid: asset.assetId,
+        tags: asset.tags,
+        name: assetName,
         annotations: {
-          'backstage.io/managed-by-location': 'url:https://firefly.ai',
-          'backstage.io/managed-by-origin-location': 'url:https://firefly.ai',
+          'backstage.io/managed-by-location': 'url:https://firefly.ai', // TODO: Should be a link to the Firefly asset
+          'backstage.io/managed-by-origin-location': 'url:https://firefly.ai', // TODO: Should be a link to the Firefly asset
           'firefly.ai/asset-id': asset.assetId,
           'firefly.ai/cloud-link': asset.cloudLink,
           'firefly.ai/code-link': asset.codeLink,
@@ -106,17 +114,34 @@ export class FireflyEntityProvider implements EntityProvider {
           'firefly.ai/provider-id': asset.providerId,
           'firefly.ai/provider-type': asset.providerType,
           'firefly.ai/resource-creation-date': String(asset.resourceCreationDate),
-          'firefly.ai/resource-id': asset.resourceId,          
+          'firefly.ai/resource-id': asset.resourceId,   
+          'firefly.ai/asset-config': JSON.stringify(asset.tfObject),
         },
+        links: [
+          ...(asset.cloudLink ? [{
+            url: asset.cloudLink,
+            title: 'Cloud Link',
+          }] : []),
+          ...(asset.codeLink ? [{
+            url: asset.codeLink,
+            title: 'Code Link',
+          }] : []),
+          ...(asset.fireflyLink ? [{
+            url: asset.fireflyLink,
+            title: 'Firefly Link',
+          }] : []),
+        ],
       },
       spec: {
-        type: 'firefly-asset',
-        owner: 'firefly-plugin',
-        system: 'firefly',
-        lifecycle: 'production',
-        dependsOn: [],
-        tags: asset.tags,
+        type: asset.assetType || 'unknown',
+        owner: asset.owner || 'unknown',
+        system: asset.providerId || 'unknown',
+        lifecycle: asset.state || 'unknown',
+        dependsOn: [], // TODO: Add parent resources
+        tags: asset.tags || [],
       },
+      // relations: [ // TODO: Add service as parent resources
+      // ],
     };
   }
 } 
