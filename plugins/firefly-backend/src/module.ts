@@ -31,6 +31,7 @@ export const catalogFireflyBackendModule = createBackendModule({
         }
 
         const fireflyClient = new FireflyClient({
+          logger,
           accessKey,
           secretKey,
         });

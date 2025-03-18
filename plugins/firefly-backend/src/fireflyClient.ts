@@ -1,8 +1,10 @@
+import { LoggerService } from '@backstage/backend-plugin-api/index';
 import axios from 'axios';
 
 export interface FireflyClientConfig {
   accessKey: string;
   secretKey: string;
+  logger: LoggerService;
 }
 
 export interface FireflyAsset {
@@ -65,10 +67,12 @@ export class FireflyClient {
   private readonly accessKey: string;
   private readonly secretKey: string;
   private accessToken: string = '';
+  private readonly logger: LoggerService;
 
   constructor(config: FireflyClientConfig) {
     this.accessKey = config.accessKey;
     this.secretKey = config.secretKey;
+    this.logger = config.logger;
   }
 
   /**
@@ -128,7 +132,7 @@ export class FireflyClient {
    * Retrieves a list of assets based on the provided filters
    */
   async getAssets(filters?: FireflyAssetFilters): Promise<FireflyInventoryResponse> {
-    const response = await this.request<FireflyInventoryResponse>('/inventory/assets', 'POST', filters);
+    const response = await this.request<FireflyInventoryResponse>('/inventory', 'POST', filters);
     return response;
   }
 
@@ -136,13 +140,16 @@ export class FireflyClient {
    * Retrieves a list of all assets based on the provided filters
    */
   async getAllAssets(filters?: FireflyAssetFilters): Promise<FireflyAsset[]> {
+    this.logger.info('Getting all assets');
     const assets: FireflyAsset[] = [];
     let hasMore = true;
     let page = 1;
     const pageSize = 1000;
 
     while (hasMore) {
-      const response = await this.getAssets({ ...filters, size: pageSize, afterKey: { sortField: 'assetId', id: assets[assets.length - 1].assetId }, sorting: { field: 'assetId', order: 'asc' } });
+      const afterKey = assets.length > 0 ? { sortField: 'assetId.keyword', id: assets[assets.length - 1]?.assetId } : undefined;
+      const response = await this.getAssets({ ...filters, size: pageSize, afterKey, sorting: { field: 'assetId.keyword', order: 'asc' } });
+      this.logger.info(`Found ${response.responseObjects.length} assets on page ${page}`);
       assets.push(...response.responseObjects);
       hasMore = response.totalPages > page;
       page++;

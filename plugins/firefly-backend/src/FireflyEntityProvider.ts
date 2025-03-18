@@ -64,6 +64,7 @@ export class FireflyEntityProvider implements EntityProvider {
     try {
       this.logger.info('Refreshing Firefly assets');
       const assets = await this.fireflyClient.getAllAssets(this.filters);
+      this.logger.info(`Found ${assets.length} assets`);
 
       // Convert assets to catalog entities
       const entities = assets.map(asset => this.assetToEntity(asset));
@@ -92,8 +93,10 @@ export class FireflyEntityProvider implements EntityProvider {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'Resource',
       metadata: {
-        name: asset.assetId,
+        name: asset.name,
         annotations: {
+          'backstage.io/managed-by-location': 'url:https://firefly.ai',
+          'backstage.io/managed-by-origin-location': 'url:https://firefly.ai',
           'firefly.ai/asset-id': asset.assetId,
           'firefly.ai/cloud-link': asset.cloudLink,
           'firefly.ai/code-link': asset.codeLink,
@@ -102,7 +105,7 @@ export class FireflyEntityProvider implements EntityProvider {
           'firefly.ai/iac-type': asset.iacType,
           'firefly.ai/provider-id': asset.providerId,
           'firefly.ai/provider-type': asset.providerType,
-          'firefly.ai/resource-creation-date': asset.resourceCreationDate,
+          'firefly.ai/resource-creation-date': String(asset.resourceCreationDate),
           'firefly.ai/resource-id': asset.resourceId,          
         },
       },
