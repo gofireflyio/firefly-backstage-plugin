@@ -114,3 +114,15 @@ kubernetes:
 permission:
   # setting this to `false` will disable permissions
   enabled: true
+
+# firefly:
+#   periodicCheck:
+#     interval: 3600
+#     filters:
+#       tags:
+#         environment: production
+#       assetTypes:
+#         - aws_s3_bucket
+#         - aws_lambda_function
+#       cloudAccounts:
+#         - '123456789012'

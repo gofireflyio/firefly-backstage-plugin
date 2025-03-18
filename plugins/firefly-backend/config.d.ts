@@ -8,19 +8,6 @@ export interface Config {
    */
   firefly?: {
     /**
-     * API credentials for connecting to Firefly
-     */
-    auth: {
-      /**
-       * Access key for Firefly API authentication
-       */
-      accessKey: string;
-      /**
-       * Secret key for Firefly API authentication
-       */
-      secretKey: string;
-    };
-    /**
      * Configuration for periodic checking of Firefly assets
      */
     periodicCheck?: {

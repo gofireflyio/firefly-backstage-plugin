@@ -21,9 +21,18 @@ export const catalogFireflyBackendModule = createBackendModule({
         logger,
         httpRouter,
       }) {
+        // Get the access key and secret key from the environment variables 
+        const accessKey = process.env.FIREFLY_ACCESS_KEY;
+        const secretKey = process.env.FIREFLY_SECRET_KEY;
+
+        if (!accessKey || !secretKey) {
+          logger.error('Firefly access key and secret key are not set');
+          throw new Error('Firefly access key and secret key are not set');
+        }
+
         const fireflyClient = new FireflyClient({
-          accessKey: config.getString('firefly.accessKey'),
-          secretKey: config.getString('firefly.secretKey'),
+          accessKey,
+          secretKey,
         });
 
         httpRouter.use(

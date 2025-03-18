@@ -9,12 +9,15 @@ This plugin integrates Firefly.ai with Backstage, allowing you to import Firefly
    yarn add @internal/plugin-firefly-backend
    ```
 
-2. Configure the plugin in your `app-config.yaml`:
+2. Authenticate with Firefly:
+   ```bash
+   export FIREFLY_ACCESS_KEY=<your-access-key>
+   export FIREFLY_SECRET_KEY=<your-secret-key>
+   ```
+
+3. Configure the plugin in your `app-config.yaml`:
    ```yaml
    firefly:
-     auth:
-       accessKey: ${FIREFLY_ACCESS_KEY}
-       secretKey: ${FIREFLY_SECRET_KEY}
      periodicCheck:
        interval: 3600  # seconds (default: 3600)
        filters:
@@ -28,7 +31,7 @@ This plugin integrates Firefly.ai with Backstage, allowing you to import Firefly
            - '123456789012'
    ```
 
-3. Add the plugin to your backend:
+4. Add the plugin to your backend:
    ```typescript
    // In packages/backend/src/index.ts or equivalent
    import { createBackend } from '@backstage/backend-defaults';

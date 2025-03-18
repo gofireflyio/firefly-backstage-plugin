@@ -4,7 +4,7 @@ import {
   EntityProviderConnection,
 } from '@backstage/plugin-catalog-node';
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { FireflyClient, FireflyFilters } from './fireflyClient';
+import { FireflyClient, FireflyAssetFilters } from './fireflyClient';
 import { Entity } from '@backstage/catalog-model';
 
 /**
@@ -24,7 +24,7 @@ export class FireflyEntityProvider implements EntityProvider {
   private readonly fireflyClient: FireflyClient;
   private readonly config: Config;
   private connection?: EntityProviderConnection;
-  private readonly filters: FireflyFilters;
+  private readonly filters: FireflyAssetFilters;
   private readonly intervalMs: number;
 
   constructor(options: FireflyEntityProviderOptions) {
@@ -34,7 +34,7 @@ export class FireflyEntityProvider implements EntityProvider {
     
     // Get configuration for periodic checks
     const periodicCheckConfig = this.config.getOptionalConfig('firefly.periodicCheck');
-    this.filters = periodicCheckConfig?.getOptional<FireflyFilters>('filters') || {};
+    this.filters = periodicCheckConfig?.getOptional<FireflyAssetFilters>('filters') || {};
     this.intervalMs = (periodicCheckConfig?.getOptionalNumber('interval') || 3600) * 1000;
   }
 
@@ -63,7 +63,7 @@ export class FireflyEntityProvider implements EntityProvider {
 
     try {
       this.logger.info('Refreshing Firefly assets');
-      const assets = await this.fireflyClient.getAssets(this.filters);
+      const assets = await this.fireflyClient.getAllAssets(this.filters);
 
       // Convert assets to catalog entities
       const entities = assets.map(asset => this.assetToEntity(asset));
@@ -92,12 +92,18 @@ export class FireflyEntityProvider implements EntityProvider {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'Resource',
       metadata: {
-        name: asset.identifier,
+        name: asset.assetId,
         annotations: {
-          'firefly.ai/asset-id': asset.identifier,
+          'firefly.ai/asset-id': asset.assetId,
           'firefly.ai/cloud-link': asset.cloudLink,
           'firefly.ai/code-link': asset.codeLink,
           'firefly.ai/firefly-link': asset.fireflyLink,
+          'firefly.ai/iac-status': asset.iacStatus,
+          'firefly.ai/iac-type': asset.iacType,
+          'firefly.ai/provider-id': asset.providerId,
+          'firefly.ai/provider-type': asset.providerType,
+          'firefly.ai/resource-creation-date': asset.resourceCreationDate,
+          'firefly.ai/resource-id': asset.resourceId,          
         },
       },
       spec: {
