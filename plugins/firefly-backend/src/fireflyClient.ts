@@ -27,19 +27,23 @@ export interface FireflyAsset {
   owner: string;
   tfObject: Record<string, any>;
 
-  codeLink: string;
-  cloudLink: string;
+  vcsCodeLink: string;
+  consoleURL: string;
   fireflyLink: string;
-  tags: string[];
-  location: string;
+  tagsList: string[];
+  region: string;
+  fireflyAssetId: string;
+  connectionSources: string[];
+  connectionTargets: string[];
+
+  // TODO: Add to API 
   parentAssetId: string;
 }
 
 export interface FireflyInventoryResponse {
   responseObjects: FireflyAsset[];
   totalObjects: number;
-  pageNumber: number;
-  totalPages: number;
+  afterKey: string;
 }
 
 export interface FireflyAggregation {
@@ -49,7 +53,7 @@ export interface FireflyAggregation {
 }
 
 export interface FireflyAssetFilters {
-  afterKey?: Record<string, any>;
+  afterKey?: string;
   size?: number;
   source?: string[];
   providerTypes?: Record<string, any>;
@@ -66,7 +70,7 @@ export interface FireflyAssetFilters {
 }
 
 export class FireflyClient {
-  private readonly baseUrl = 'https://api.firefly.ai/api/v1.0';
+  private readonly baseUrl = 'http://localhost:7771/api/v1.0'; // TODO: change to https://api.firefly.ai/api/v1.0
   private readonly accessKey: string;
   private readonly secretKey: string;
   private accessToken: string = '';
@@ -83,6 +87,7 @@ export class FireflyClient {
    */
   async login(): Promise<string> {
     try {
+      console.log(`${this.baseUrl}/login`);
       const response = await axios.post(`${this.baseUrl}/login`, {
         accessKey: this.accessKey,
         secretKey: this.secretKey,
@@ -100,7 +105,7 @@ export class FireflyClient {
       return this.accessToken;
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        throw new Error(`Login failed: ${error.response?.status} - ${error.response?.data}`);
+        throw new Error(`Login failed: ${error.response?.status} - ${error}`);
       }
       throw error;
     }
@@ -148,16 +153,14 @@ export class FireflyClient {
     let hasMore = true;
     let page = 1;
     const pageSize = 10000;
-
+    let afterKey: string | undefined;
     while (hasMore) {
-      const afterKey = assets.length > 0 ? { sortField: 'assetId', id: assets[assets.length - 1]?.assetId } : undefined; // TODO: Check if this is correct
-      
       // Try up to 3 times to get assets
       let retries = 0;
       let response;
       while (retries < 3) {
         try {
-          response = await this.getAssets({ ...filters, size: pageSize, afterKey, sorting: { field: 'assetId.keyword', order: 'asc' } }); // TODO: Check if the sorting is correct
+          response = await this.getAssets({ ...filters, size: pageSize, afterKey });
           break;
         } catch (error) {
           retries++;
@@ -173,9 +176,10 @@ export class FireflyClient {
         throw new Error('Failed to get assets');
       }
 
-      this.logger.info(`Found ${response.responseObjects.length} assets on page ${page}`);
+      this.logger.info(`Found ${response.responseObjects.length} assets on page ${page}, total objects: ${response.totalObjects}`);
       assets.push(...response.responseObjects);
       hasMore = response.responseObjects.length === pageSize;
+      afterKey = response.afterKey;
       page++;
     }
 

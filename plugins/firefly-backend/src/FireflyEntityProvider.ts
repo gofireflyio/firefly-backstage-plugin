@@ -4,8 +4,9 @@ import {
   EntityProviderConnection,
 } from '@backstage/plugin-catalog-node';
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { FireflyClient, FireflyAssetFilters } from './fireflyClient';
+import { FireflyClient, FireflyAssetFilters, FireflyAsset } from './fireflyClient';
 import { Entity } from '@backstage/catalog-model';
+import crypto from 'crypto';
 
 /**
  * Options for instantiating FireflyEntityProvider
@@ -89,25 +90,35 @@ export class FireflyEntityProvider implements EntityProvider {
    * Converts a Firefly asset to a Backstage entity
    */
   private assetToEntity(asset: any): Entity {
-    const assetName = asset.name
-      .replace(/[^a-zA-Z0-9\-_.]/g, '-') // Replace invalid chars with dash
-      .replace(/[-_.]{2,}/g, '-') // Replace multiple separators with single dash
-      .replace(/^[-_.]|[-_.]$/g, '') // Remove separators from start/end
-      .slice(0, 63); // Limit to 63 chars
+    const assetIdHash = crypto.createHash('sha1').update(asset.fireflyAssetId).digest('hex');
+    const connectionSourcesIds = asset.connectionSources.map((source: string) => `resource:${crypto.createHash('sha1').update(source).digest('hex')}`);
+    const connectionTargetsIds = asset.connectionTargets.map((target: string) => `resource:${crypto.createHash('sha1').update(target).digest('hex')}`);
     return {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'Resource',
       metadata: {
-        uid: asset.assetId,
-        tags: asset.tags,
-        name: assetName,
-        namespace: asset.location || 'default',
+        labels: asset.tagsList.reduce((acc: Record<string, string>, tag: string) => {
+          // Parse tag into key-value pairs, ensuring they follow Kubernetes label format
+          // Keys and values must be alphanumeric with [-_.] separators and max 63 chars
+          const parts = tag.split(': ');
+          let key = parts[0] || '';
+          let value = parts[1] || '';
+          
+          // Sanitize key and value to match [a-zA-Z0-9][-_.] format
+          key = key.replace(/[^a-zA-Z0-9\-_.]/g, '_').substring(0, 63);
+          value = value.replace(/[^a-zA-Z0-9\-_.]/g, '_').substring(0, 63);
+          acc[key] = value;
+          return acc;
+        }, {}),
+        name: assetIdHash,
+        title: asset.name,
+        namespace: asset.region || 'default',
         annotations: {
-          'backstage.io/managed-by-location': 'url:https://firefly.ai', // TODO: Should be a link to the Firefly asset
-          'backstage.io/managed-by-origin-location': 'url:https://firefly.ai', // TODO: Should be a link to the Firefly asset
+          'backstage.io/managed-by-location': `url:${asset.fireflyLink}`, 
+          'backstage.io/managed-by-origin-location': `url:${asset.fireflyLink}`,
           'firefly.ai/asset-id': asset.assetId,
-          'firefly.ai/cloud-link': asset.cloudLink,
-          'firefly.ai/code-link': asset.codeLink,
+          'firefly.ai/cloud-link': asset.consoleURL,
+          'firefly.ai/code-link': asset.vcsCodeLink,
           'firefly.ai/firefly-link': asset.fireflyLink,
           'firefly.ai/iac-status': asset.iacStatus,
           'firefly.ai/iac-type': asset.iacType,
@@ -118,12 +129,12 @@ export class FireflyEntityProvider implements EntityProvider {
           'firefly.ai/asset-config': JSON.stringify(asset.tfObject),
         },
         links: [
-          ...(asset.cloudLink ? [{
-            url: asset.cloudLink,
+          ...(asset.consoleURL ? [{
+            url: asset.consoleURL,
             title: 'Cloud Link',
           }] : []),
-          ...(asset.codeLink ? [{
-            url: asset.codeLink,
+          ...(asset.vcsCodeLink ? [{
+            url: asset.vcsCodeLink,
             title: 'Code Link',
           }] : []),
           ...(asset.fireflyLink ? [{
@@ -137,11 +148,9 @@ export class FireflyEntityProvider implements EntityProvider {
         owner: asset.owner || 'unknown',
         system: asset.providerId || 'unknown',
         lifecycle: asset.state || 'unknown',
-        dependsOn: [], // TODO: Add parent resources
-        tags: asset.tags || [],
+        dependsOn: connectionSourcesIds || [],
+        dependencyOf: connectionTargetsIds || [],
       },
-      // relations: [ // TODO: Add service as parent resources
-      // ],
     };
   }
 } 
