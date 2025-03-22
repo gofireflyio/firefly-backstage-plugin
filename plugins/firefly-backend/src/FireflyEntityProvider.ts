@@ -4,7 +4,7 @@ import {
   EntityProviderConnection,
 } from '@backstage/plugin-catalog-node';
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { FireflyClient, FireflyAssetFilters, FireflyAsset } from './fireflyClient';
+import { FireflyClient, FireflyAssetFilters } from './fireflyClient';
 import { Entity } from '@backstage/catalog-model';
 import crypto from 'crypto';
 
@@ -86,6 +86,28 @@ export class FireflyEntityProvider implements EntityProvider {
     }
   }
 
+  private getLabels(tagsList: string[]): Record<string, string> {
+    return tagsList.reduce((acc: Record<string, string>, tag: string) => {
+      // Parse tag into key-value pairs, ensuring they follow Kubernetes label format
+      // Keys and values must be alphanumeric with [-_.] separators and max 63 chars
+      const parts = tag.split(': ');
+      let key = parts[0] || '';
+      let value = parts[1] || '';
+      
+      // Sanitize key and value to match Kubernetes label format
+      // First replace invalid characters with underscores
+      key = key.replace(/[^a-zA-Z0-9\-_.]/g, '_').substring(0, 63);
+      value = value.replace(/[^a-zA-Z0-9\-_.]/g, '_').substring(0, 63);
+      
+      // Ensure no double separators like "--", "__", "..", "-_", "_.", etc.
+      // And not at the start or at the end
+      key = key.replace(/[-_.]{2,}/g, '_').replace(/^[-_.]|[-_.]$/g, '');
+      value = value.replace(/[-_.]{2,}/g, '_').replace(/^[-_.]|[-_.]$/g, '');
+      acc[key] = value;
+      return acc;
+    }, {})
+  }
+
   /**
    * Converts a Firefly asset to a Backstage entity
    */
@@ -93,23 +115,15 @@ export class FireflyEntityProvider implements EntityProvider {
     const assetIdHash = crypto.createHash('sha1').update(asset.fireflyAssetId).digest('hex');
     const connectionSourcesIds = asset.connectionSources.map((source: string) => `resource:${crypto.createHash('sha1').update(source).digest('hex')}`);
     const connectionTargetsIds = asset.connectionTargets.map((target: string) => `resource:${crypto.createHash('sha1').update(target).digest('hex')}`);
+    const labels = this.getLabels(asset.tagsList);
     return {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'Resource',
       metadata: {
-        labels: asset.tagsList.reduce((acc: Record<string, string>, tag: string) => {
-          // Parse tag into key-value pairs, ensuring they follow Kubernetes label format
-          // Keys and values must be alphanumeric with [-_.] separators and max 63 chars
-          const parts = tag.split(': ');
-          let key = parts[0] || '';
-          let value = parts[1] || '';
-          
-          // Sanitize key and value to match [a-zA-Z0-9][-_.] format
-          key = key.replace(/[^a-zA-Z0-9\-_.]/g, '_').substring(0, 63);
-          value = value.replace(/[^a-zA-Z0-9\-_.]/g, '_').substring(0, 63);
-          acc[key] = value;
-          return acc;
-        }, {}),
+        labels,
+        tags: Object.values(labels).map(value => 
+          value.toLowerCase().replace(/[^a-z0-9+#\-]/g, '-').substring(0, 63)
+        ).filter(tag => tag.length >= 1),
         name: assetIdHash,
         title: asset.name,
         namespace: asset.region || 'default',
