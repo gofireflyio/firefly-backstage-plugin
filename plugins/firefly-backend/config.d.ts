@@ -16,21 +16,25 @@ export interface Config {
        */
       interval?: number;
       /**
+       * Fetch systems from Firefly
+       */
+      fetchSystems?: boolean;
+      /**
+       * Fetch resources from Firefly
+       */
+      fetchResources?: boolean;
+      /**
        * Filters to apply when fetching assets from Firefly
        */
       filters?: {
-        /**
-         * Filter assets by tags
-         */
-        tags?: Record<string, string>; // TODO: remove this
         /**
          * Filter assets by asset types
          */
         assetTypes?: string[];
         /**
-         * Filter assets by cloud accounts
+         * Filter assets by provider ids
          */
-        cloudAccounts?: string[];
+        providerIds?: string[];
       };
     };
   };
