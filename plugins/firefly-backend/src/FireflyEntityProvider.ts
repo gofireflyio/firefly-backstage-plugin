@@ -68,22 +68,58 @@ export class FireflyEntityProvider implements EntityProvider {
       this.logger.info(`Found ${assets.length} assets`);
 
       // Convert assets to catalog entities
-      const entities = assets.map(asset => this.assetToEntity(asset));
+      const resources = assets.map(asset => this.assetToEntity(asset));
+      const systems = this.getSystems(assets);
 
       // Emit all entities to the catalog
       await this.connection.applyMutation({
         type: 'full',
-        entities: entities.map(entity => ({
+        entities: [...resources, ...systems].map(entity => ({
           entity,
           locationKey: 'firefly',
         })),
       });
 
-      this.logger.info(`Firefly refresh completed, ${entities.length} assets found`);
+      this.logger.info(`Firefly refresh completed, ${resources.length} assets found`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error('Failed to refresh Firefly assets', { error: errorMessage });
     }
+  }
+
+  private getSystems(assets: any[]): Entity[] {
+     let originProviders: Record<string, any> = {};
+     assets.forEach(asset => {
+      originProviders[asset.providerId] = {
+        name: asset.providerId,
+        owner: 'Firefly',
+        type: asset.assetType.split('_')[0],
+      }
+     });
+
+     return Object.values(originProviders).map((provider) => ({
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'System',
+      metadata: { 
+        name: provider.name,
+        annotations: {
+          'backstage.io/managed-by-location': `url:https://app.firefly.ai/`, 
+          'backstage.io/managed-by-origin-location': `url:https://app.firefly.ai/`,
+
+          'firefly.ai/origin-provider-id': provider.name,
+        },  
+      },
+      spec: {
+        owner: 'firefly',
+        type: provider.type,
+      },
+     }));
+  }
+
+  private validName(name: string): string {
+     name = name.replace(/[^a-zA-Z0-9\-_.]/g, '_').substring(0, 63);
+     name = name.replace(/[-_.]{2,}/g, '_').replace(/^[-_.]|[-_.]$/g, '');
+     return name;
   }
 
   private getLabels(tagsList: string[]): Record<string, string> {
@@ -96,13 +132,8 @@ export class FireflyEntityProvider implements EntityProvider {
       
       // Sanitize key and value to match Kubernetes label format
       // First replace invalid characters with underscores
-      key = key.replace(/[^a-zA-Z0-9\-_.]/g, '_').substring(0, 63);
-      value = value.replace(/[^a-zA-Z0-9\-_.]/g, '_').substring(0, 63);
-      
-      // Ensure no double separators like "--", "__", "..", "-_", "_.", etc.
-      // And not at the start or at the end
-      key = key.replace(/[-_.]{2,}/g, '_').replace(/^[-_.]|[-_.]$/g, '');
-      value = value.replace(/[-_.]{2,}/g, '_').replace(/^[-_.]|[-_.]$/g, '');
+      key = this.validName(key);
+      value = this.validName(value);
       acc[key] = value;
       return acc;
     }, {})
@@ -157,7 +188,7 @@ export class FireflyEntityProvider implements EntityProvider {
           'firefly.ai/state-location': asset.stateLocationString,
           
           // Provider information
-          'firefly.ai/provider-id': asset.providerId,
+          'firefly.ai/origin-provider-id': asset.providerId,
           'firefly.ai/vcs-provider': asset.vcsProvider,
           'firefly.ai/vcs-repo': asset.vcsRepo,
           
