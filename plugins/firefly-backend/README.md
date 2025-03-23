@@ -28,8 +28,6 @@ Additionally, the plugin automatically relates existing components in your catal
        importResources: true  # import assets as resources
        filters:
          # Optional filters to apply when fetching assets
-         tags:
-           environment: production
          assetTypes:
            - aws_s3_bucket
            - aws_lambda_function
@@ -55,7 +53,7 @@ Additionally, the plugin automatically relates existing components in your catal
 
 - Imports Firefly assets as Backstage catalog entities
 - Periodically refreshes assets based on configured interval
-- Supports filtering assets by tags, asset types, and provider IDs
+- Supports filtering assets by asset types and provider IDs
 - Creates system entities to represent cloud accounts
 - Maps Firefly asset metadata to Backstage entity annotations
 - Captures resource relationships and dependencies
