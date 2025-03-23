@@ -34,8 +34,8 @@ Additionally, the plugin automatically relates existing components in your catal
            - aws_s3_bucket
            - aws_lambda_function
          providerIds:
-           - '123456789012'  # AWS account IDs
-           - 'your-gcp-project-id'  # GCP project IDs
+           - '123456789012'  
+           - 'devops-651215'  
    ```
 
 4. Add the plugin to your backend:
