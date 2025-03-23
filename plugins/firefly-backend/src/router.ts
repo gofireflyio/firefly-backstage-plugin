@@ -29,11 +29,10 @@ export async function createRouter(
   // Get Firefly inventory assets with filters
   router.get('/assets', async (req, res) => {
     try {
-      const { tags, assetTypes, cloudAccounts } = req.query;
+      const { assetTypes, cloudAccounts } = req.query;
       const assets = await fireflyClient.getAssets({
-        tags: tags ? JSON.parse(tags as string) : undefined,
         assetTypes: assetTypes ? JSON.parse(assetTypes as string) : undefined,
-        cloudAccounts: cloudAccounts ? JSON.parse(cloudAccounts as string) : undefined,
+        providerIds: cloudAccounts ? JSON.parse(cloudAccounts as string) : undefined,
       });
       res.json(assets);
     } catch (err) {
@@ -43,22 +42,21 @@ export async function createRouter(
     }
   });
 
-  // Get Firefly inventory aggregations
-  router.get('/aggregations', async (req, res) => {
-    try {
-      const { tags, assetTypes, cloudAccounts } = req.query;
-      const aggregations = await fireflyClient.getAggregations({
-        tags: tags ? JSON.parse(tags as string) : undefined,
-        assetTypes: assetTypes ? JSON.parse(assetTypes as string) : undefined,
-        cloudAccounts: cloudAccounts ? JSON.parse(cloudAccounts as string) : undefined,
-      });
-      res.json(aggregations);
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      logger.error('Error fetching Firefly aggregations:', error);
-      res.status(500).json({ error: 'Failed to fetch Firefly aggregations' });
-    }
-  });
+  // // Get Firefly inventory aggregations
+  // router.get('/aggregations', async (req, res) => {
+  //   try {
+  //     const { assetTypes, cloudAccounts } = req.query;
+  //     const aggregations = await fireflyClient.getAggregations({
+  //       assetTypes: assetTypes ? JSON.parse(assetTypes as string) : undefined,
+  //       providerIds: cloudAccounts ? JSON.parse(cloudAccounts as string) : undefined,
+  //     });
+  //     res.json(aggregations);
+  //   } catch (err) {
+  //     const error = err instanceof Error ? err : new Error(String(err));
+  //     logger.error('Error fetching Firefly aggregations:', error);
+  //     res.status(500).json({ error: 'Failed to fetch Firefly aggregations' });
+  //   }
+  // });
 
   const middleware = MiddlewareFactory.create({ logger, config });
   router.use(middleware.error());

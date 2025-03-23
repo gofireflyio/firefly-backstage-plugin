@@ -22,7 +22,7 @@ export interface Config {
         /**
          * Filter assets by tags
          */
-        tags?: Record<string, string>;
+        tags?: Record<string, string>; // TODO: remove this
         /**
          * Filter assets by asset types
          */

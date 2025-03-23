@@ -127,19 +127,45 @@ export class FireflyEntityProvider implements EntityProvider {
         name: assetIdHash,
         title: asset.name,
         namespace: asset.region || 'default',
+        description: JSON.stringify(asset.tfObject),
         annotations: {
           'backstage.io/managed-by-location': `url:${asset.fireflyLink}`, 
           'backstage.io/managed-by-origin-location': `url:${asset.fireflyLink}`,
+          
+          // Asset identification annotations
           'firefly.ai/asset-id': asset.assetId,
+          'firefly.ai/resource-id': asset.resourceId,
+          'firefly.ai/fireflyAssetId': asset.fireflyAssetId,
+          
+          // Resource metadata annotations
+          'firefly.ai/name': asset.name,
+          'firefly.ai/arn': asset.arn,
+          'firefly.ai/state': asset.state,
+          'firefly.ai/region': asset.region,
+          'firefly.ai/owner': asset.owner,
+          
+          // Links to external resources
           'firefly.ai/cloud-link': asset.consoleURL,
           'firefly.ai/code-link': asset.vcsCodeLink,
           'firefly.ai/firefly-link': asset.fireflyLink,
-          'firefly.ai/iac-status': asset.iacStatus,
+          
+          // Infrastructure as code information
           'firefly.ai/iac-type': asset.iacType,
+          'firefly.ai/terraform-module': asset.terraformModule,
+          'firefly.ai/terraform-object-name': asset.terraformObjectName,
+          'firefly.ai/delete-command': asset.deleteCommand,
+          'firefly.ai/state-location': asset.stateLocationString,
+          
+          // Provider information
           'firefly.ai/provider-id': asset.providerId,
-          'firefly.ai/provider-type': asset.providerType,
+          'firefly.ai/vcs-provider': asset.vcsProvider,
+          'firefly.ai/vcs-repo': asset.vcsRepo,
+          
+          // Timestamps
           'firefly.ai/resource-creation-date': String(asset.resourceCreationDate),
-          'firefly.ai/resource-id': asset.resourceId,   
+          'firefly.ai/last-resource-state-change': String(asset.lastResourceStateChange),
+          
+          // Configuration data
           'firefly.ai/asset-config': JSON.stringify(asset.tfObject),
         },
         links: [

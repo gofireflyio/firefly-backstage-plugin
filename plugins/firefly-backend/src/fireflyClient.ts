@@ -35,9 +35,6 @@ export interface FireflyAsset {
   fireflyAssetId: string;
   connectionSources: string[];
   connectionTargets: string[];
-
-  // TODO: Add to API 
-  parentAssetId: string;
 }
 
 export interface FireflyInventoryResponse {
@@ -70,7 +67,7 @@ export interface FireflyAssetFilters {
 }
 
 export class FireflyClient {
-  private readonly baseUrl = 'http://localhost:7771/api/v1.0'; // TODO: change to https://api.firefly.ai/api/v1.0
+  private readonly baseUrl = 'https://api.firefly.ai/api/v1.0';
   private readonly accessKey: string;
   private readonly secretKey: string;
   private accessToken: string = '';

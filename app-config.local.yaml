@@ -1,1 +1,12 @@
 # Backstage override configuration for your local development environment
+firefly:
+  periodicCheck:
+    interval: 100
+    filters:
+      assetTypes:
+        - aws_s3_bucket
+        - aws_lambda_function
+        - google_compute_subnetwork
+      cloudAccounts:
+        - 094724549126
+        - devops-372014
