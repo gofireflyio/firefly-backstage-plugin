@@ -115,7 +115,8 @@ export class FireflyEntityProvider implements EntityProvider {
     const assetIdHash = crypto.createHash('sha1').update(asset.fireflyAssetId).digest('hex');
     const connectionSourcesIds = asset.connectionSources.map((source: string) => `resource:${crypto.createHash('sha1').update(source).digest('hex')}`);
     const connectionTargetsIds = asset.connectionTargets.map((target: string) => `resource:${crypto.createHash('sha1').update(target).digest('hex')}`);
-    const labels = this.getLabels(asset.tagsList);
+    let labels = this.getLabels(asset.tagsList);
+    labels['location'] = asset.region || 'unknown';
     return {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'Resource',
@@ -126,7 +127,6 @@ export class FireflyEntityProvider implements EntityProvider {
         ).filter(tag => tag.length >= 1),
         name: assetIdHash,
         title: asset.name,
-        namespace: asset.region || 'default',
         description: JSON.stringify(asset.tfObject),
         annotations: {
           'backstage.io/managed-by-location': `url:${asset.fireflyLink}`, 
@@ -141,7 +141,7 @@ export class FireflyEntityProvider implements EntityProvider {
           'firefly.ai/name': asset.name,
           'firefly.ai/arn': asset.arn,
           'firefly.ai/state': asset.state,
-          'firefly.ai/region': asset.region,
+          'firefly.ai/location': asset.region,
           'firefly.ai/owner': asset.owner,
           
           // Links to external resources
