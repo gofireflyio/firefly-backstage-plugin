@@ -2,7 +2,7 @@ import { createBackendModule, coreServices } from '@backstage/backend-plugin-api
 import { createRouter } from './router';
 import { FireflyEntityProvider } from './FireflyEntityProvider';
 import { catalogProcessingExtensionPoint } from '@backstage/plugin-catalog-node/alpha';
-import { FireflyClient } from './fireflyClient';
+import { FireflyClient } from './client/fireflyClient';
 
 export const catalogFireflyBackendModule = createBackendModule({
   pluginId: 'catalog',

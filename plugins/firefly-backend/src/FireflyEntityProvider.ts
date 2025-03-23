@@ -4,9 +4,10 @@ import {
   EntityProviderConnection,
 } from '@backstage/plugin-catalog-node';
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { FireflyClient, FireflyAssetFilters } from './fireflyClient';
+import { FireflyClient } from './client/fireflyClient';
 import { Entity } from '@backstage/catalog-model';
 import crypto from 'crypto';
+import { FireflyAssetFilters } from './client/types';
 
 /**
  * Options for instantiating FireflyEntityProvider
@@ -27,6 +28,8 @@ export class FireflyEntityProvider implements EntityProvider {
   private connection?: EntityProviderConnection;
   private readonly filters: FireflyAssetFilters;
   private readonly intervalMs: number;
+  private readonly fetchSystems: boolean;
+  private readonly fetchResources: boolean;
 
   constructor(options: FireflyEntityProviderOptions) {
     this.logger = options.logger;
@@ -37,6 +40,8 @@ export class FireflyEntityProvider implements EntityProvider {
     const periodicCheckConfig = this.config.getOptionalConfig('firefly.periodicCheck');
     this.filters = periodicCheckConfig?.getOptional<FireflyAssetFilters>('filters') || {};
     this.intervalMs = (periodicCheckConfig?.getOptionalNumber('interval') || 3600) * 1000;
+    this.fetchSystems = periodicCheckConfig?.getOptionalBoolean('fetchSystems') || false;
+    this.fetchResources = periodicCheckConfig?.getOptionalBoolean('fetchResources') || false;
   }
 
   /** @inheritdoc */
@@ -68,19 +73,33 @@ export class FireflyEntityProvider implements EntityProvider {
       this.logger.info(`Found ${assets.length} assets`);
 
       // Convert assets to catalog entities
-      const resources = assets.map(asset => this.assetToEntity(asset));
-      const systems = this.getSystems(assets);
+      const resources = this.fetchResources ? assets.map(asset => this.assetToEntity(asset)) : [];
+      const systems = this.fetchSystems ? this.getSystems(assets) : [];
+
+      if (this.fetchResources) {
+        this.logger.info(`Found ${resources.length} resources`);
+      }
+
+      if (this.fetchSystems) {
+        this.logger.info(`Found ${systems.length} systems`);
+      }
+
+      const entities = [...resources, ...systems];
+      if (entities.length === 0) {
+        this.logger.info('No entities found');
+        return;
+      }
 
       // Emit all entities to the catalog
       await this.connection.applyMutation({
         type: 'full',
-        entities: [...resources, ...systems].map(entity => ({
+        entities: entities.map(entity => ({
           entity,
           locationKey: 'firefly',
         })),
       });
 
-      this.logger.info(`Firefly refresh completed, ${resources.length} assets found`);
+      this.logger.info(`Firefly refresh completed, ${entities.length} entities found`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error('Failed to refresh Firefly assets', { error: errorMessage });

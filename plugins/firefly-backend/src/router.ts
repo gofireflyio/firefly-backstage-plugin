@@ -2,7 +2,7 @@ import express from 'express';
 import { Config } from '@backstage/config';
 import { LoggerService } from '@backstage/backend-plugin-api';
 import { MiddlewareFactory } from '@backstage/backend-defaults/rootHttpRouter';
-import { FireflyClient } from './fireflyClient';
+import { FireflyClient } from './client/fireflyClient';
 
 /**
  * @internal

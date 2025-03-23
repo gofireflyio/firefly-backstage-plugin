@@ -118,11 +118,14 @@ permission:
 # firefly:
 #   periodicCheck:
 #     interval: 3600
+#     fetchSystems: true
+#     fetchResources: true
 #     filters:
 #       tags:
 #         environment: production
 #       assetTypes:
 #         - aws_s3_bucket
 #         - aws_lambda_function
-#       cloudAccounts:
+#       providerIds:
 #         - '123456789012'
+#         - 'devops-651215'
