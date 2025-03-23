@@ -20,6 +20,8 @@ export interface FireflyEntityProviderOptions {
 
 /**
  * Provides entities from Firefly to the Backstage catalog
+ * This provider imports both systems (cloud accounts) and resources (cloud assets)
+ * based on configuration options.
  */
 export class FireflyEntityProvider implements EntityProvider {
   private readonly logger: LoggerService;
@@ -28,9 +30,13 @@ export class FireflyEntityProvider implements EntityProvider {
   private connection?: EntityProviderConnection;
   private readonly filters: FireflyAssetFilters;
   private readonly intervalMs: number;
-  private readonly fetchSystems: boolean;
-  private readonly fetchResources: boolean;
+  private readonly importSystems: boolean;
+  private readonly importResources: boolean;
 
+  /**
+   * Creates a new instance of the FireflyEntityProvider
+   * @param options - Configuration options for the provider
+   */
   constructor(options: FireflyEntityProviderOptions) {
     this.logger = options.logger;
     this.fireflyClient = options.fireflyClient;
@@ -40,20 +46,28 @@ export class FireflyEntityProvider implements EntityProvider {
     const periodicCheckConfig = this.config.getOptionalConfig('firefly.periodicCheck');
     this.filters = periodicCheckConfig?.getOptional<FireflyAssetFilters>('filters') || {};
     this.intervalMs = (periodicCheckConfig?.getOptionalNumber('interval') || 3600) * 1000;
-    this.fetchSystems = periodicCheckConfig?.getOptionalBoolean('fetchSystems') || false;
-    this.fetchResources = periodicCheckConfig?.getOptionalBoolean('fetchResources') || false;
+    this.importSystems = periodicCheckConfig?.getOptionalBoolean('importSystems') || false;
+    this.importResources = periodicCheckConfig?.getOptionalBoolean('importResources') || false;
   }
 
-  /** @inheritdoc */
+  /** 
+   * Returns the name of this provider
+   * @inheritdoc 
+   */
   getProviderName(): string {
     return 'firefly';
   }
 
-  /** @inheritdoc */
+  /** 
+   * Establishes a connection with the entity provider and starts the refresh cycle
+   * @param connection - The connection to the entity catalog
+   * @inheritdoc 
+   */
   async connect(connection: EntityProviderConnection): Promise<void> {
     this.connection = connection;
     this.refresh();
     
+    // Set up recurring refresh if an interval is configured
     if (this.intervalMs > 0) {
       setInterval(() => this.refresh(), this.intervalMs);
     }
@@ -61,6 +75,7 @@ export class FireflyEntityProvider implements EntityProvider {
 
   /**
    * Reads all assets from Firefly and converts them into catalog entities
+   * This method is called periodically to keep the catalog in sync with Firefly
    */
   private async refresh(): Promise<void> {
     if (!this.connection) {
@@ -72,15 +87,15 @@ export class FireflyEntityProvider implements EntityProvider {
       const assets = await this.fireflyClient.getAllAssets(this.filters);
       this.logger.info(`Found ${assets.length} assets`);
 
-      // Convert assets to catalog entities
-      const resources = this.fetchResources ? assets.map(asset => this.assetToEntity(asset)) : [];
-      const systems = this.fetchSystems ? this.getSystems(assets) : [];
+      // Convert assets to catalog entities based on configuration
+      const resources = this.importResources ? assets.map(asset => this.assetToEntity(asset)) : [];
+      const systems = this.importSystems ? this.getSystems(assets) : [];
 
-      if (this.fetchResources) {
+      if (this.importResources) {
         this.logger.info(`Found ${resources.length} resources`);
       }
 
-      if (this.fetchSystems) {
+      if (this.importSystems) {
         this.logger.info(`Found ${systems.length} systems`);
       }
 
@@ -106,16 +121,25 @@ export class FireflyEntityProvider implements EntityProvider {
     }
   }
 
+  /**
+   * Creates system entities from the collected assets
+   * Each cloud provider account/project becomes a system entity
+   * 
+   * @param assets - The assets fetched from Firefly
+   * @returns An array of system entities
+   */
   private getSystems(assets: any[]): Entity[] {
+     // Create a map of provider IDs to provider information
      let originProviders: Record<string, any> = {};
      assets.forEach(asset => {
       originProviders[asset.providerId] = {
         name: asset.providerId,
         owner: 'Firefly',
-        type: asset.assetType.split('_')[0],
+        type: asset.assetType.split('_')[0], // Extract provider type (aws, gcp, azure)
       }
      });
 
+     // Convert each provider to a System entity
      return Object.values(originProviders).map((provider) => ({
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'System',
@@ -135,12 +159,26 @@ export class FireflyEntityProvider implements EntityProvider {
      }));
   }
 
+  /**
+   * Sanitizes a name to make it valid for Kubernetes labels/annotations
+   * 
+   * @param name - The string to sanitize
+   * @returns A sanitized string that conforms to Kubernetes label constraints
+   */
   private validName(name: string): string {
+     // Replace invalid characters with underscore and limit to 63 chars
      name = name.replace(/[^a-zA-Z0-9\-_.]/g, '_').substring(0, 63);
+     // Remove consecutive separators and trim leading/trailing separators
      name = name.replace(/[-_.]{2,}/g, '_').replace(/^[-_.]|[-_.]$/g, '');
      return name;
   }
 
+  /**
+   * Converts Firefly tags to Kubernetes-compatible labels
+   * 
+   * @param tagsList - List of tags from Firefly
+   * @returns A record of key-value pairs conforming to Kubernetes label format
+   */
   private getLabels(tagsList: string[]): Record<string, string> {
     return tagsList.reduce((acc: Record<string, string>, tag: string) => {
       // Parse tag into key-value pairs, ensuring they follow Kubernetes label format
@@ -160,13 +198,27 @@ export class FireflyEntityProvider implements EntityProvider {
 
   /**
    * Converts a Firefly asset to a Backstage entity
+   * Maps asset metadata to entity annotations and establishes relationships
+   * 
+   * @param asset - The Firefly asset to convert
+   * @returns A Backstage entity representing the asset
    */
   private assetToEntity(asset: any): Entity {
+    // Create a consistent, unique ID for the asset based on its Firefly ID
     const assetIdHash = crypto.createHash('sha1').update(asset.fireflyAssetId).digest('hex');
-    const connectionSourcesIds = asset.connectionSources.map((source: string) => `resource:${crypto.createHash('sha1').update(source).digest('hex')}`);
-    const connectionTargetsIds = asset.connectionTargets.map((target: string) => `resource:${crypto.createHash('sha1').update(target).digest('hex')}`);
+    
+    // Map connection sources and targets to entity references for dependsOn/dependencyOf
+    const connectionSourcesIds = asset.connectionSources.map((source: string) => 
+      `resource:${crypto.createHash('sha1').update(source).digest('hex')}`
+    );
+    const connectionTargetsIds = asset.connectionTargets.map((target: string) => 
+      `resource:${crypto.createHash('sha1').update(target).digest('hex')}`
+    );
+    
+    // Process tags for Kubernetes-compatible labels
     let labels = this.getLabels(asset.tagsList);
     labels['location'] = asset.region || 'unknown';
+    
     return {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'Resource',

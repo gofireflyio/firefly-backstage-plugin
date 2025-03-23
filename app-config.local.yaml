@@ -2,8 +2,8 @@
 firefly:
   periodicCheck:
     interval: 3600
-    fetchSystems: true
-    fetchResources: true
+    importSystems: true
+    importResources: true
     filters:
       assetTypes:
         - aws_s3_bucket

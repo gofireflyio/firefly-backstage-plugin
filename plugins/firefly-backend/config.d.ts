@@ -16,13 +16,13 @@ export interface Config {
        */
       interval?: number;
       /**
-       * Fetch systems from Firefly
+       * Import systems from Firefly
        */
-      fetchSystems?: boolean;
+      importSystems?: boolean;
       /**
-       * Fetch resources from Firefly
+       * Import resources from Firefly
        */
-      fetchResources?: boolean;
+      importResources?: boolean;
       /**
        * Filters to apply when fetching assets from Firefly
        */
