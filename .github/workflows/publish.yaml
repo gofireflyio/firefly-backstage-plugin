@@ -64,5 +64,5 @@ jobs:
           file: ./packages/backend/Dockerfile
           push: true
           tags: |
-            gofireflyio/backstage:${{ github.event.inputs.image_tag }}
+            gofireflyio/backstage:${{ env.tag }}
             gofireflyio/backstage:latest
