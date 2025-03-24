@@ -1,0 +1,6 @@
+backstage-plugin-firefly:
+  - changed-files:
+      - any-glob-to-any-file: ["firefly/**/*"]
+backstage-plugin-firefly-backend:
+  - changed-files:
+      - any-glob-to-any-file: ["firefly-backend/**/*"]
