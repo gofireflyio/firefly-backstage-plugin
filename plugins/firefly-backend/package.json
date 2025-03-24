@@ -1,17 +1,21 @@
 {
-  "name": "@internal/plugin-firefly-backend",
+  "name": "@firefly/backstage-backend-plugin-firefly",
+  "description": "Firefly backend plugin for Backstage",
   "version": "0.1.0",
   "license": "Apache-2.0",
-  "private": true,
   "main": "src/index.ts",
   "types": "src/index.ts",
+  "repository": "https://github.com/gofireflyio/firefly-backstage-plugin",
+  "homepage": "https://firefly.ai",
   "publishConfig": {
     "access": "public",
     "main": "dist/index.cjs.js",
     "types": "dist/index.d.ts"
   },
   "backstage": {
-    "role": "backend-plugin-module"
+    "role": "backend-plugin-module",
+    "pluginId": "firefly-backend",
+    "pluginPackages": "@firefly/backstage-backend-plugin-firefly"
   },
   "scripts": {
     "start": "backstage-cli package start",
