@@ -60,7 +60,7 @@ export const EntityFireflyContent = () => {
     return (
       <Content>
         <ContentHeader title="Firefly Assets" />
-        <div>No Firefly assets found for this entity.</div>
+        <div>No Firefly assets found for this entity. </div>
       </Content>
     );
   }
