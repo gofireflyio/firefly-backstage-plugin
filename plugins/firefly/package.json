@@ -1,8 +1,8 @@
 {
-  "name": "@firefly/backstage-plugin-firefly",
+  "name": "@fireflyai/backstage-plugin-firefly",
   "description": "Firefly plugin for Backstage",
   "version": "0.1.0",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "repository": "https://github.com/gofireflyio/firefly-backstage-plugin",
@@ -15,7 +15,7 @@
   "backstage": {
     "role": "frontend-plugin",
     "pluginId": "firefly",
-    "pluginPackages": "@firefly/backstage-plugin-firefly"
+    "pluginPackages": "@fireflyai/backstage-plugin-firefly"
   },
   "sideEffects": false,
   "scripts": {
