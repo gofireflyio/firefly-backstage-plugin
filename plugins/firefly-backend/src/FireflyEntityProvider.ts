@@ -74,6 +74,54 @@ export class FireflyEntityProvider implements EntityProvider {
   }
 
   /**
+   * Reads all assets from Firefly and converts them into catalog entities
+   * This method is called periodically to keep the catalog in sync with Firefly
+   */
+  private async refresh(): Promise<void> {
+    if (!this.connection) {
+      throw new Error('Firefly entity provider is not initialized');
+    }
+
+    try {
+      this.logger.info('Refreshing Firefly assets');
+      const assets = await this.fireflyClient.getAllAssets(this.filters);
+      this.logger.info(`Found ${assets.length} assets`);
+
+      // Convert assets to catalog entities based on configuration
+      const resources = this.importResources ? assets.map(asset => this.assetToEntity(asset)) : [];
+      const systems = this.importSystems ? this.getSystems(assets) : [];
+
+      if (this.importResources) {
+        this.logger.info(`Found ${resources.length} resources`);
+      }
+
+      if (this.importSystems) {
+        this.logger.info(`Found ${systems.length} systems`);
+      }
+
+      const entities = [...resources, ...systems];
+      if (entities.length === 0) {
+        this.logger.info('No entities found');
+        return;
+      }
+
+      // Emit all entities to the catalog
+      await this.connection.applyMutation({
+        type: 'full',
+        entities: entities.map(entity => ({
+          entity,
+          locationKey: 'firefly',
+        })),
+      });
+
+      this.logger.info(`Firefly refresh completed, ${entities.length} entities found`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error('Failed to refresh Firefly assets', { error: errorMessage });
+    }
+  }
+
+  /**
    * Creates system entities from the collected assets
    * Each cloud provider account/project becomes a system entity
    * 
@@ -109,61 +157,6 @@ export class FireflyEntityProvider implements EntityProvider {
         type: provider.type,
       },
      }));
-  }
-
-  /**
-   * Creates service entities from assets based on matching tags
-   * Each unique combination of service-related tags becomes a service entity
-   * 
-   * @param assets - The assets fetched from Firefly
-   * @returns An array of service entities
-   */
-  private getServices(assets: any[]): Entity[] {
-    // Create a map to store unique service identifiers and their associated assets
-    const serviceMap = new Map<string, any[]>();
-
-    // Group assets by service-related tags
-    assets.forEach(asset => {
-      const serviceTags = asset.tagsList
-        .filter((tag: string) => tag.toLowerCase().includes('service') || 
-                                tag.toLowerCase().includes('application') ||
-                                tag.toLowerCase().includes('project'))
-        .sort()
-        .join('|');
-
-      if (serviceTags) {
-        if (!serviceMap.has(serviceTags)) {
-          serviceMap.set(serviceTags, []);
-        }
-        serviceMap.get(serviceTags)?.push(asset);
-      }
-    });
-
-    // Convert each service group to a Service entity
-    return Array.from(serviceMap.entries()).map(([serviceTags, serviceAssets]) => {
-      const serviceId = crypto.createHash('sha1').update(serviceTags).digest('hex');
-      const serviceName = `service-${serviceId.substring(0, 8)}`;
-      
-      return {
-        apiVersion: 'backstage.io/v1alpha1',
-        kind: 'Service',
-        metadata: {
-          name: serviceName,
-          title: serviceName,
-          description: `Service containing resources with tags: ${serviceTags}`,
-          annotations: {
-            'backstage.io/managed-by-location': 'url:https://app.firefly.ai/',
-            'backstage.io/managed-by-origin-location': 'url:https://app.firefly.ai/',
-            'firefly.ai/service-tags': serviceTags,
-          },
-        },
-        spec: {
-          owner: 'firefly',
-          type: 'service',
-          system: serviceAssets[0]?.providerId || 'unknown',
-        },
-      };
-    });
   }
 
   /**
@@ -225,18 +218,6 @@ export class FireflyEntityProvider implements EntityProvider {
     // Process tags for Kubernetes-compatible labels
     let labels = this.getLabels(asset.tagsList);
     labels['location'] = asset.region || 'unknown';
-
-    // Find service tags and create service reference
-    const serviceTags = asset.tagsList
-      .filter((tag: string) => tag.toLowerCase().includes('service') || 
-                              tag.toLowerCase().includes('application') ||
-                              tag.toLowerCase().includes('project'))
-      .sort()
-      .join('|');
-
-    const serviceId = serviceTags ? 
-      `service:service-${crypto.createHash('sha1').update(serviceTags).digest('hex').substring(0, 8)}` : 
-      undefined;
     
     return {
       apiVersion: 'backstage.io/v1alpha1',
@@ -311,58 +292,7 @@ export class FireflyEntityProvider implements EntityProvider {
         lifecycle: asset.state || 'unknown',
         dependsOn: connectionSourcesIds || [],
         dependencyOf: connectionTargetsIds || [],
-        partOf: serviceId ? [serviceId] : undefined,
       },
     };
-  }
-
-  /**
-   * Reads all assets from Firefly and converts them into catalog entities
-   * This method is called periodically to keep the catalog in sync with Firefly
-   */
-  private async refresh(): Promise<void> {
-    if (!this.connection) {
-      throw new Error('Firefly entity provider is not initialized');
-    }
-
-    try {
-      this.logger.info('Refreshing Firefly assets');
-      const assets = await this.fireflyClient.getAllAssets(this.filters);
-      this.logger.info(`Found ${assets.length} assets`);
-
-      // Convert assets to catalog entities based on configuration
-      const resources = this.importResources ? assets.map(asset => this.assetToEntity(asset)) : [];
-      const systems = this.importSystems ? this.getSystems(assets) : [];
-      const services = this.importResources ? this.getServices(assets) : [];
-
-      if (this.importResources) {
-        this.logger.info(`Found ${resources.length} resources`);
-        this.logger.info(`Found ${services.length} services`);
-      }
-
-      if (this.importSystems) {
-        this.logger.info(`Found ${systems.length} systems`);
-      }
-
-      const entities = [...resources, ...systems, ...services];
-      if (entities.length === 0) {
-        this.logger.info('No entities found');
-        return;
-      }
-
-      // Emit all entities to the catalog
-      await this.connection.applyMutation({
-        type: 'full',
-        entities: entities.map(entity => ({
-          entity,
-          locationKey: 'firefly',
-        })),
-      });
-
-      this.logger.info(`Firefly refresh completed, ${entities.length} entities found`);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error('Failed to refresh Firefly assets', { error: errorMessage });
-    }
   }
 } 
