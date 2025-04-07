@@ -1,0 +1,1 @@
+export { catalogFireflyBackendModule as default } from './module';
