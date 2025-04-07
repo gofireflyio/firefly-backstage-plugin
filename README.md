@@ -34,6 +34,10 @@ This plugin integrates Firefly.ai with Backstage, providing a seamless way to vi
   - Top 5 components with unmanaged/drifted and overall resources
 - Service component integration:
   - IaC coverage information
+ 
+## Demo
+
+https://github.com/user-attachments/assets/6e533ca8-964b-49c7-aa7b-5f0d1cc5d23f
 
 ## Development
 
