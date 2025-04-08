@@ -71,6 +71,11 @@ export class FireflyClient {
       },
     });
 
+    if (response.status === 401) {
+      await this.login();
+      return this.request(path, method, data);
+    }
+
     return response.data;
   }
 
