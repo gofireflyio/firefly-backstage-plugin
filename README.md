@@ -56,7 +56,7 @@ https://github.com/user-attachments/assets/6e533ca8-964b-49c7-aa7b-5f0d1cc5d23f
 For support and questions:
 
 - Open an issue in the GitHub repository
-- Contact Firefly.ai support at [support@firefly.ai](mailto:support@firefly.ai)
+- Contact Firefly.ai support at [help@firefly.ai](mailto:help@firefly.ai)
 - Check our documentation at [Firefly Docs](https://docs.firefly.ai)
 
 ## Contributing
