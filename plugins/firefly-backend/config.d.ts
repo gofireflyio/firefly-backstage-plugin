@@ -43,6 +43,10 @@ export interface Config {
          * Filter assets by provider ids
          */
         providerIds?: string[];
+        /**
+         * Include resources configuration to be added to the resources entities description. Default is true. 
+         */
+        includeConfiguration?: boolean;
       };
     };
   };

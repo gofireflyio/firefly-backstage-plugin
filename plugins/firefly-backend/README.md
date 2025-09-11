@@ -40,7 +40,7 @@ Both methods create a complete picture of your application architecture from sof
            - aws_lambda_function
          providerIds:
            - '123456789012'  
-           - 'devops-651215'  
+         includeConfiguration: true  # include resources configuration to be added to the resources entities description
    ```
 
 4. Add the plugin to your backend:

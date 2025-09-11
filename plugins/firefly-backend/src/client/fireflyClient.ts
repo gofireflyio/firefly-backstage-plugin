@@ -102,7 +102,7 @@ export class FireflyClient {
       let response;
       while (retries < 3) {
         try {
-          response = await this.getAssets({ ...filters, size: pageSize, afterKey });
+          response = await this.getAssets({ ...filters, includeConfigration: filters?.includeConfiguration, size: pageSize, afterKey });
           break;
         } catch (error) {
           retries++;

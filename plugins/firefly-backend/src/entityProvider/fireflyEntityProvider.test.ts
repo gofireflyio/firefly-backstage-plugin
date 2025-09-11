@@ -71,6 +71,7 @@ const config = new ConfigReader({
       filters: {
         assetTypes: ['aws_s3_bucket', 'aws_lambda_function', 'google_compute_subnetwork'],
         providerIds: ['094724549126', 'devops-372014'],
+        includeConfiguration: true,
       },
     },
   },

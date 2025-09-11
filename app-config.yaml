@@ -133,3 +133,4 @@ permission:
 #       providerIds:
 #         - '123456789012'
 #         - 'devops-651215'
+#     includeConfiguration: true  

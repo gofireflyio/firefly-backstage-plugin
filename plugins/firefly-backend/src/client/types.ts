@@ -49,4 +49,6 @@ export interface FireflyAsset {
     names?: string[];
     arns?: string[];
     dayRangeEpoch?: number;
+    includeConfiguration?: boolean;
+    includeConfigration?: boolean;
   }
