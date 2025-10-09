@@ -51,12 +51,12 @@ Both methods create a complete picture of your application architecture from sof
 
 ## Features
 
-- Imports Firefly assets as Backstage catalog resource entities
-- Periodically refreshes assets based on configured interval
-- Supports filtering assets by asset types and provider IDs
-- Creates system entities to represent cloud accounts
-- Captures resource relationships and dependencies
-- Automatically relates existing components in your catalog to their corresponding cloud resources and cloud accounts
+- Imports Firefly assets as Backstage catalog resource entities.
+- Periodically refreshes assets based on configured interval.
+- Supports filtering assets by asset types and provider IDs.
+- Creates system entities to represent cloud accounts.
+- Captures resource relationships and dependencies.
+- Automatically relates existing components in your catalog to their corresponding cloud resources and cloud accounts.
 
 ## Related Plugins
 
